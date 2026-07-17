@@ -55,6 +55,18 @@ export const router = createRouter({
       name: 'trade-message',
       component: () => import('@/views/TradeMessageView.vue'),
     },
+    {
+      path: '/buy-message',
+      name: 'buy-message',
+      component: () => import('@/views/MarketMessageView.vue'),
+      props: { mode: 'buy' },
+    },
+    {
+      path: '/sell-message',
+      name: 'sell-message',
+      component: () => import('@/views/MarketMessageView.vue'),
+      props: { mode: 'sell' },
+    },
     { path: '/finance', name: 'finance', component: () => import('@/views/FinanceView.vue') },
     {
       path: '/finance/add-purchase',

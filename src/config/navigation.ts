@@ -8,6 +8,8 @@ import {
   ArrowLeftRight,
   Repeat,
   MessageSquareText,
+  ShoppingCart,
+  Tag,
   Banknote,
   Settings as SettingsIcon,
 } from '@lucide/vue'
@@ -67,6 +69,20 @@ export const navItems: NavItem[] = [
     icon: MessageSquareText,
     titleKey: 'nav.tradeMessage',
     subtitleKey: 'nav.tradeMessageSubtitle',
+  },
+  {
+    key: 'buyMessage',
+    path: '/buy-message',
+    icon: ShoppingCart,
+    titleKey: 'nav.buyMessage',
+    subtitleKey: 'nav.buyMessageSubtitle',
+  },
+  {
+    key: 'sellMessage',
+    path: '/sell-message',
+    icon: Tag,
+    titleKey: 'nav.sellMessage',
+    subtitleKey: 'nav.sellMessageSubtitle',
   },
   {
     key: 'finance',

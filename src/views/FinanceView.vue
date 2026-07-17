@@ -7,7 +7,8 @@ import { useFinanceStore } from '@/stores/finance'
 import { purchaseKindsByKind } from '@/data/purchaseKinds'
 import { purchaseKindIcons } from '@/config/purchaseKindIcons'
 import { useCurrency } from '@/composables/useCurrency'
-import type { PurchaseKind } from '@/types/models'
+import { stickerEntryLabel } from '@/services/stickerId'
+import type { PurchaseKind, StickerEntry } from '@/types/models'
 
 const { t, locale } = useI18n()
 const router = useRouter()
@@ -18,6 +19,10 @@ function kindName(kind: PurchaseKind) {
   const meta = purchaseKindsByKind.get(kind)
   if (!meta) return kind
   return locale.value === 'ru' ? meta.nameRU : meta.nameEN
+}
+
+function soldStickersLabel(entries: StickerEntry[]) {
+  return entries.map(stickerEntryLabel).join(', ')
 }
 
 function formatDate(iso: string) {
@@ -94,6 +99,7 @@ const diffColor = computed(() => {
         <li v-for="s in sortedSales" :key="s.id" class="list-row">
           <div class="row-main">
             <span class="row-title">{{ format(s.price) }}</span>
+            <span v-if="s.stickers.length > 0" class="row-sub">{{ soldStickersLabel(s.stickers) }}</span>
             <span class="row-sub">{{ formatDate(s.date) }}<template v-if="s.comment"> · {{ s.comment }}</template></span>
           </div>
           <button class="delete-btn" @click="finance.removeSale(s.id)"><Trash2 :size="14" /></button>

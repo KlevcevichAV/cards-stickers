@@ -146,6 +146,7 @@ export default {
     noSales: 'No sales logged yet.',
     addPurchase: 'Add Purchase',
     addSale: 'Add Sale',
+    soldStickers: 'Sold stickers',
     kind: 'Type',
     quantity: 'Quantity',
     pricePerUnit: 'Price',

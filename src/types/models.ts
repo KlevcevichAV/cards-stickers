@@ -56,6 +56,7 @@ export interface Purchase {
 
 export interface Sale {
   id: string
+  stickers: StickerEntry[]
   price: number
   date: string
   comment: string

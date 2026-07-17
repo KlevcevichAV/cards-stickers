@@ -1,10 +1,11 @@
 import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
 import { db } from '@/db/database'
-import type { Purchase, PurchaseKind, Sale } from '@/types/models'
+import type { Purchase, PurchaseKind, Sale, StickerEntry } from '@/types/models'
 import { purchaseKindsByKind } from '@/data/purchaseKinds'
 import { useAlbumStore } from '@/stores/album'
 import { useExchangesStore } from '@/stores/exchanges'
+import { stickerIdForEntry } from '@/services/stickerId'
 
 export const useFinanceStore = defineStore('finance', () => {
   const purchases = ref<Purchase[]>([])
@@ -36,10 +37,21 @@ export const useFinanceStore = defineStore('finance', () => {
     purchases.value = purchases.value.filter((p) => p.id !== id)
   }
 
-  async function addSale(price: number, date: string, comment: string) {
-    const sale: Sale = { id: crypto.randomUUID(), price, date, comment }
+  async function addSale(stickers: StickerEntry[], price: number, date: string, comment: string) {
+    // `stickers` comes from ExchangeStickerPicker's v-model and stays deeply
+    // reactive; IndexedDB's structured-clone can't serialize that (see the
+    // same fix in exchanges.ts's toPlainExchange). A JSON round-trip strips it.
+    const sale: Sale = JSON.parse(JSON.stringify({ id: crypto.randomUUID(), stickers, price, date, comment }))
     await db.sales.add(sale)
     sales.value.push(sale)
+
+    const album = useAlbumStore()
+    for (const entry of stickers) {
+      const stickerId = stickerIdForEntry(entry)
+      for (let i = 0; i < entry.count; i++) {
+        await album.removeDuplicate(stickerId)
+      }
+    }
   }
 
   async function removeSale(id: string) {
@@ -70,7 +82,14 @@ export const useFinanceStore = defineStore('finance', () => {
       }, 0)
   })
 
-  const expectedStickerTotal = computed(() => totalStickersBought.value + netTradeDelta.value)
+  /** Stickers that physically left the collection via a sale. */
+  const totalStickersSold = computed(() =>
+    sales.value.reduce((sum, s) => sum + s.stickers.reduce((s2, entry) => s2 + entry.count, 0), 0),
+  )
+
+  const expectedStickerTotal = computed(
+    () => totalStickersBought.value + netTradeDelta.value - totalStickersSold.value,
+  )
 
   /** Physical cards actually on hand: one per collected sticker slot, plus extra duplicate copies. */
   const actualStickerTotal = computed(() => {
@@ -91,6 +110,7 @@ export const useFinanceStore = defineStore('finance', () => {
     removeSale,
     totalSpent,
     totalStickersBought,
+    totalStickersSold,
     totalPacksBought,
     costPerSticker,
     totalEarned,

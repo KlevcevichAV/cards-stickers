@@ -1,19 +1,24 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import { useFinanceStore } from '@/stores/finance'
+import ExchangeStickerPicker from '@/components/ExchangeStickerPicker.vue'
+import type { StickerEntry } from '@/types/models'
 
 const { t } = useI18n()
 const router = useRouter()
 const finance = useFinanceStore()
 
+const stickers = ref<StickerEntry[]>([])
 const price = ref(0)
 const date = ref(new Date().toISOString().slice(0, 10))
 const comment = ref('')
 
+const canSubmit = computed(() => stickers.value.length > 0)
+
 async function submit() {
-  await finance.addSale(price.value, new Date(date.value).toISOString(), comment.value)
+  await finance.addSale(stickers.value, price.value, new Date(date.value).toISOString(), comment.value)
   router.push('/finance')
 }
 </script>
@@ -21,6 +26,11 @@ async function submit() {
 <template>
   <form class="add-sale" @submit.prevent="submit">
     <h1>{{ t('finance.addSale') }}</h1>
+
+    <div class="field">
+      <label>{{ t('finance.soldStickers') }}</label>
+      <ExchangeStickerPicker v-model="stickers" mode="giving" />
+    </div>
 
     <div class="field">
       <label>{{ t('finance.pricePerUnit') }}</label>
@@ -39,7 +49,7 @@ async function submit() {
 
     <div class="actions">
       <button type="button" class="btn secondary" @click="router.push('/finance')">{{ t('common.cancel') }}</button>
-      <button type="submit" class="btn primary">{{ t('common.save') }}</button>
+      <button type="submit" class="btn primary" :disabled="!canSubmit">{{ t('common.save') }}</button>
     </div>
   </form>
 </template>
@@ -93,6 +103,10 @@ input {
 .btn.primary {
   background: var(--color-accent);
   color: var(--color-accent-contrast);
+}
+
+.btn.primary:disabled {
+  opacity: 0.4;
 }
 
 .btn.secondary {

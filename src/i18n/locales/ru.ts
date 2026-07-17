@@ -146,6 +146,7 @@ export default {
     noSales: 'Продаж пока нет.',
     addPurchase: 'Добавить покупку',
     addSale: 'Добавить продажу',
+    soldStickers: 'Проданные наклейки',
     kind: 'Тип',
     quantity: 'Количество',
     pricePerUnit: 'Цена',

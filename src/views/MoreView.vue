@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { RouterLink } from 'vue-router'
+import { Send } from '@lucide/vue'
 import { moreItems } from '@/config/navigation'
 </script>
 
@@ -17,6 +18,17 @@ import { moreItems } from '@/config/navigation'
             <span v-if="item.subtitleKey" class="subtitle">{{ $t(item.subtitleKey) }}</span>
           </span>
         </RouterLink>
+      </li>
+      <li>
+        <a href="https://t.me/cards_stickers" target="_blank" rel="noopener noreferrer" class="row">
+          <span class="icon">
+            <Send :size="18" />
+          </span>
+          <span class="text">
+            <span class="title">{{ $t('more.community') }}</span>
+            <span class="subtitle">{{ $t('more.communitySubtitle') }}</span>
+          </span>
+        </a>
       </li>
     </ul>
   </div>

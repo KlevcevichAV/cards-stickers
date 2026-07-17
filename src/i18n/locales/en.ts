@@ -188,8 +188,9 @@ export default {
     importBackup: 'Import backup',
     importSuccess: 'Backup restored successfully.',
     importError: 'That file could not be read as a backup.',
-    community: 'Community',
-    communityDescription: 'Join the collectors\' chat on Telegram — trades, sales, and discussion.',
-    communityButton: 'Open Telegram chat',
+  },
+  more: {
+    community: 'Telegram Community',
+    communitySubtitle: 'Trades, sales, and discussion',
   },
 } as const

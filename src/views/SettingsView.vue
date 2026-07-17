@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { Download, Upload, Smartphone, Send } from '@lucide/vue'
+import { Download, Upload, Smartphone } from '@lucide/vue'
 import { useSettingsStore } from '@/stores/settings'
 import { usePwaInstall } from '@/composables/usePwaInstall'
 import { exportBackup, downloadBackup, parseBackup, importBackup } from '@/services/backupService'
@@ -75,14 +75,6 @@ async function handleImportFile(event: Event) {
       <p v-if="importStatus === 'success'" class="status success">{{ t('settings.importSuccess') }}</p>
       <p v-if="importStatus === 'error'" class="status error">{{ t('settings.importError') }}</p>
     </section>
-
-    <section class="card">
-      <h2>{{ t('settings.community') }}</h2>
-      <p class="description">{{ t('settings.communityDescription') }}</p>
-      <a class="btn primary" href="https://t.me/cards_stickers" target="_blank" rel="noopener noreferrer">
-        <Send :size="16" /> {{ t('settings.communityButton') }}
-      </a>
-    </section>
   </div>
 </template>
 
@@ -141,7 +133,6 @@ input[type='text'] {
   font-weight: 600;
   font-size: 13px;
   flex: 1;
-  text-decoration: none;
 }
 
 .btn.primary {

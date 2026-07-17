@@ -36,3 +36,14 @@ npm run dev
 ```sh
 npm run build
 ```
+
+## Deployment
+
+The app auto-deploys to GitHub Pages on every push to `main` via
+[`.github/workflows/deploy.yml`](.github/workflows/deploy.yml) — no manual
+build/publish step needed. Live at:
+
+**https://klevcevichav.github.io/cards-stickers/**
+
+Requires a one-time toggle in the repo settings: **Settings → Pages →
+Source → "GitHub Actions"**.

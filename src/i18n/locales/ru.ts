@@ -188,5 +188,8 @@ export default {
     importBackup: 'Импорт резервной копии',
     importSuccess: 'Резервная копия успешно восстановлена.',
     importError: 'Не удалось прочитать этот файл как резервную копию.',
+    community: 'Сообщество',
+    communityDescription: 'Присоединяйтесь к чату коллекционеров в Telegram — обмены, продажи и обсуждения.',
+    communityButton: 'Открыть чат в Telegram',
   },
 } as const

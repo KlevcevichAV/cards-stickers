@@ -7,8 +7,10 @@ import { useAlbumStore } from '@/stores/album'
 
 const props = defineProps<{ sticker: Sticker }>()
 
-const { t } = useI18n()
+const { t, locale } = useI18n()
 const album = useAlbumStore()
+
+const displayName = computed(() => (locale.value === 'ru' ? props.sticker.nameRU : props.sticker.nameEN))
 
 /** The standalone "Panini Logo" sticker is its own one-sticker team (id "00", number 0) — show "00", not "0". */
 const STANDALONE_LOGO_TEAM_CODE = '00'
@@ -72,6 +74,7 @@ function onAnimationEnd() {
 
       <component :is="typeIcon" :size="14" class="type-icon" />
       <span class="number">{{ displayNumber }}</span>
+      <span class="sticker-name">{{ displayName }}</span>
     </div>
 
     <div class="qty-controls">
@@ -116,6 +119,20 @@ function onAnimationEnd() {
 .number {
   font-size: 12px;
   font-weight: 600;
+}
+
+.sticker-name {
+  font-size: 8px;
+  line-height: 1.15;
+  font-weight: 500;
+  text-align: center;
+  padding: 0 3px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  word-break: break-word;
+  opacity: 0.85;
 }
 
 .type-icon {

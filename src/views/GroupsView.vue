@@ -4,17 +4,16 @@ import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 import { List, GalleryHorizontal, ArrowDownAZ, Search } from '@lucide/vue'
 import { useAlbumStore, type TeamStat } from '@/stores/album'
+import { useSettingsStore, type GroupsViewMode } from '@/stores/settings'
 import TeamMiniCard from '@/components/TeamMiniCard.vue'
 import { groupTitle } from '@/services/groupTitle'
 
-type ViewMode = 'list' | 'scroll' | 'alpha'
-
 const album = useAlbumStore()
+const settings = useSettingsStore()
 const { locale, t } = useI18n()
 const router = useRouter()
 const route = useRoute()
 
-const mode = ref<ViewMode>('list')
 const search = ref('')
 const expandedGroups = ref<Set<string>>(new Set())
 
@@ -38,7 +37,7 @@ watch(
   () => route.query.expand,
   (letter) => {
     if (typeof letter !== 'string') return
-    mode.value = 'list'
+    settings.groupsViewMode = 'list'
     expandedGroups.value = new Set([...expandedGroups.value, letter])
     router.replace({ path: '/groups' })
   },
@@ -54,7 +53,7 @@ const alphaTeams = computed<TeamStat[]>(() => {
   )
 })
 
-const modes: { key: ViewMode; icon: Component; labelKey: string }[] = [
+const modes: { key: GroupsViewMode; icon: Component; labelKey: string }[] = [
   { key: 'list', icon: List, labelKey: 'groups.viewList' },
   { key: 'scroll', icon: GalleryHorizontal, labelKey: 'groups.viewScroll' },
   { key: 'alpha', icon: ArrowDownAZ, labelKey: 'groups.viewAlpha' },
@@ -71,9 +70,9 @@ const modes: { key: ViewMode; icon: Component; labelKey: string }[] = [
           v-for="m in modes"
           :key="m.key"
           class="mode-btn"
-          :class="{ active: mode === m.key }"
+          :class="{ active: settings.groupsViewMode === m.key }"
           :aria-label="t(m.labelKey)"
-          @click="mode = m.key"
+          @click="settings.groupsViewMode = m.key"
         >
           <component :is="m.icon" :size="16" />
         </button>
@@ -81,7 +80,7 @@ const modes: { key: ViewMode; icon: Component; labelKey: string }[] = [
     </header>
 
     <!-- List mode: collapsible sections per group -->
-    <div v-if="mode === 'list'" class="list-mode">
+    <div v-if="settings.groupsViewMode === 'list'" class="list-mode">
       <section v-for="group in album.groupStats" :key="group.letter" class="group-section">
         <button class="group-header" @click="toggleGroup(group.letter)">
           <span class="group-title">{{ groupTitle(group.letter) }}</span>
@@ -106,7 +105,7 @@ const modes: { key: ViewMode; icon: Component; labelKey: string }[] = [
     </div>
 
     <!-- Scroll mode: horizontal-scrolling rows per group -->
-    <div v-else-if="mode === 'scroll'" class="scroll-mode">
+    <div v-else-if="settings.groupsViewMode === 'scroll'" class="scroll-mode">
       <section v-for="group in album.groupStats" :key="group.letter" class="scroll-section">
         <h2>{{ groupTitle(group.letter) }}</h2>
         <div class="scroll-row">
@@ -278,6 +277,10 @@ h2 {
   background: none;
   border: none;
   outline: none;
-  font-size: 14px;
+  /* iOS Safari auto-zooms the page on focus for any input with a computed
+     font-size under 16px — keep this at 16px to avoid that, and scale it
+     back down visually with a transform instead if it ever needs to look
+     smaller. */
+  font-size: 16px;
 }
 </style>

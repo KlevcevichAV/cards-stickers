@@ -13,7 +13,6 @@ const album = useAlbumStore()
 const exchangesStore = useExchangesStore()
 const settings = useSettingsStore()
 const copied = ref(false)
-const price = ref('')
 
 /** The standalone "Panini Logo" team has exactly one sticker — no number to list, just its own code. */
 const STANDALONE_LOGO_TEAM_CODE = '00'
@@ -50,8 +49,8 @@ const messageText = computed(() => {
   if (whatText.value) {
     parts.push('', whatHeader, whatText.value)
   }
-  if (price.value.trim()) {
-    parts.push('', `${t('marketMessage.priceMessagePrefix')}: ${price.value.trim()}`)
+  if (settings.marketMessagePrice.trim()) {
+    parts.push('', `${t('marketMessage.priceMessagePrefix')}: ${settings.marketMessagePrice.trim()}`)
   }
   if (settings.tradeMessageLocation.trim()) {
     parts.push('', `${t('marketMessage.locationMessagePrefix')}: ${settings.tradeMessageLocation.trim()}`)
@@ -75,7 +74,7 @@ async function copy() {
       <label class="field-label" for="market-message-price">{{ t('marketMessage.priceFieldLabel') }}</label>
       <input
         id="market-message-price"
-        v-model="price"
+        v-model="settings.marketMessagePrice"
         type="text"
         class="text-field"
         :placeholder="t('marketMessage.pricePlaceholder')"

@@ -12,8 +12,9 @@ export const useFinanceStore = defineStore('finance', () => {
   const sales = ref<Sale[]>([])
   const loaded = ref(false)
 
-  async function load() {
-    if (loaded.value) return
+  /** Pass `force: true` to re-read from Dexie even if already loaded — e.g. after a backup import. */
+  async function load(force = false) {
+    if (loaded.value && !force) return
     ;[purchases.value, sales.value] = await Promise.all([db.purchases.toArray(), db.sales.toArray()])
     loaded.value = true
   }

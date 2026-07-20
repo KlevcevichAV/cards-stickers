@@ -37,8 +37,9 @@ export const useAlbumStore = defineStore('album', () => {
   /** Sticker id that should play the "paste" snap animation right now, if any. */
   const justPastedId = ref<string | null>(null)
 
-  async function load() {
-    if (loaded.value) return
+  /** Pass `force: true` to re-read from Dexie even if already loaded — e.g. after a backup import. */
+  async function load(force = false) {
+    if (loaded.value && !force) return
     const [teamRows, stickerRows] = await Promise.all([
       db.teams.orderBy('orderIndex').toArray(),
       db.stickers.toArray(),

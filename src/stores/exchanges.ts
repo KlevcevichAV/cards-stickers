@@ -18,8 +18,9 @@ export const useExchangesStore = defineStore('exchanges', () => {
   const loaded = ref(false)
   const { impact } = useHaptics()
 
-  async function load() {
-    if (loaded.value) return
+  /** Pass `force: true` to re-read from Dexie even if already loaded — e.g. after a backup import. */
+  async function load(force = false) {
+    if (loaded.value && !force) return
     exchanges.value = await db.exchanges.toArray()
     loaded.value = true
   }

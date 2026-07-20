@@ -15,8 +15,9 @@ export const useAchievementsStore = defineStore('achievements', () => {
   const currentBanner = ref<AchievementDefinition | null>(null)
   const bannerQueue: AchievementDefinition[] = []
 
-  async function load() {
-    if (loaded.value) return
+  /** Pass `force: true` to re-read from Dexie even if already loaded — e.g. after a backup import. */
+  async function load(force = false) {
+    if (loaded.value && !force) return
     const records = await db.achievementRecords.toArray()
     unlockedIds.value = new Set(records.map((r) => r.achievementID))
     unlockedAt.value = new Map(records.map((r) => [r.achievementID, r.unlockedAt]))

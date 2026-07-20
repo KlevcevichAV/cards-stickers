@@ -4,6 +4,9 @@ import { useI18n } from 'vue-i18n'
 import { Download, Upload, Smartphone, PartyPopper } from '@lucide/vue'
 import { useSettingsStore } from '@/stores/settings'
 import { useAlbumStore } from '@/stores/album'
+import { useAchievementsStore } from '@/stores/achievements'
+import { useExchangesStore } from '@/stores/exchanges'
+import { useFinanceStore } from '@/stores/finance'
 import { usePwaInstall } from '@/composables/usePwaInstall'
 import { exportBackup, downloadBackup, parseBackup, importBackup } from '@/services/backupService'
 
@@ -41,6 +44,16 @@ async function handleImportFile(event: Event) {
     const text = await file.text()
     const backup = parseBackup(text)
     await importBackup(backup)
+    // The relevant stores were already loaded into memory at app boot (see
+    // AppShell.vue) and their `load()` is a no-op once `loaded` is set, so
+    // without forcing a re-read here every screen would keep showing the
+    // pre-import data until a full page reload.
+    await Promise.all([
+      album.load(true),
+      useAchievementsStore().load(true),
+      useExchangesStore().load(true),
+      useFinanceStore().load(true),
+    ])
     importStatus.value = 'success'
   } catch {
     importStatus.value = 'error'

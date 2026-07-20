@@ -1,17 +1,29 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { Download, Upload, Smartphone } from '@lucide/vue'
+import { Download, Upload, Smartphone, PartyPopper } from '@lucide/vue'
 import { useSettingsStore } from '@/stores/settings'
+import { useAlbumStore } from '@/stores/album'
 import { usePwaInstall } from '@/composables/usePwaInstall'
 import { exportBackup, downloadBackup, parseBackup, importBackup } from '@/services/backupService'
 
 const { t } = useI18n()
 const settings = useSettingsStore()
+const album = useAlbumStore()
 const { canInstall, install, isIOS, isStandalone } = usePwaInstall()
 
 const importStatus = ref<'idle' | 'success' | 'error'>('idle')
 const fileInput = ref<HTMLInputElement | null>(null)
+
+const collectionStatus = ref<'idle' | 'success'>('idle')
+const collectedCount = ref(0)
+
+async function handleMarkCollectionComplete() {
+  if (!window.confirm(t('settings.collectionCompleteConfirm'))) return
+  collectedCount.value = await album.markAllCollected()
+  collectionStatus.value = 'success'
+  setTimeout(() => (collectionStatus.value = 'idle'), 4000)
+}
 
 async function handleExport() {
   const backup = await exportBackup()
@@ -74,6 +86,17 @@ async function handleImportFile(event: Event) {
       </div>
       <p v-if="importStatus === 'success'" class="status success">{{ t('settings.importSuccess') }}</p>
       <p v-if="importStatus === 'error'" class="status error">{{ t('settings.importError') }}</p>
+    </section>
+
+    <section class="card">
+      <h2>{{ t('settings.collectionComplete') }}</h2>
+      <p class="description">{{ t('settings.collectionCompleteDescription') }}</p>
+      <button class="btn warning" @click="handleMarkCollectionComplete">
+        <PartyPopper :size="16" /> {{ t('settings.collectionCompleteButton') }}
+      </button>
+      <p v-if="collectionStatus === 'success'" class="status success">
+        {{ t('settings.collectionCompleteSuccess', { count: collectedCount }) }}
+      </p>
     </section>
   </div>
 </template>
@@ -142,6 +165,11 @@ input[type='text'] {
 
 .btn.secondary {
   background: var(--color-bg-sunken);
+}
+
+.btn.warning {
+  background: var(--color-warning);
+  color: #fff;
 }
 
 .hidden-input {

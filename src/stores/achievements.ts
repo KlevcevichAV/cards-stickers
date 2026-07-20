@@ -31,7 +31,7 @@ export const useAchievementsStore = defineStore('achievements', () => {
     return unlockedAt.value.get(id)
   }
 
-  async function unlock(def: AchievementDefinition) {
+  async function unlock(def: AchievementDefinition, options?: { silent?: boolean }) {
     if (unlockedIds.value.has(def.id)) return
     unlockedIds.value.add(def.id)
     const now = new Date().toISOString()
@@ -39,7 +39,7 @@ export const useAchievementsStore = defineStore('achievements', () => {
     // Show the banner immediately; persistence finishes in the background and
     // is not awaited by callers, so a late/failed write must not surface as
     // an unhandled rejection.
-    enqueueBanner(def)
+    if (!options?.silent) enqueueBanner(def)
     try {
       await db.achievementRecords.put({ achievementID: def.id, unlockedAt: now })
     } catch (error) {
@@ -64,15 +64,20 @@ export const useAchievementsStore = defineStore('achievements', () => {
     }
   }
 
-  /** Call right after a sticker is pasted or a duplicate is added. */
-  function checkAfterPaste(sticker: Sticker) {
+  /**
+   * Call right after a sticker is pasted or a duplicate is added.
+   * Pass `{ silent: true }` for bulk operations (e.g. marking the whole
+   * collection complete at once) so achievements still unlock but don't
+   * flood the screen with a banner per achievement.
+   */
+  function checkAfterPaste(sticker: Sticker, options?: { silent?: boolean }) {
     const album = useAlbumStore()
     const allStickers = Array.from(album.stickers.values())
 
     // 1. Superstar easter eggs.
     for (const def of achievements) {
       if (def.trigger.kind === 'stickerPasted' && def.trigger.id === sticker.id) {
-        unlock(def)
+        unlock(def, options)
       }
     }
 
@@ -83,14 +88,14 @@ export const useAchievementsStore = defineStore('achievements', () => {
     })
     if (allStarsPasted) {
       const def = achievements.find((a) => a.trigger.kind === 'allStarsPasted')
-      if (def) unlock(def)
+      if (def) unlock(def, options)
     }
 
     // 3. Team completed.
     const teamStickers = allStickers.filter((s) => s.teamCode === sticker.teamCode)
     if (teamStickers.length > 0 && teamStickers.every((s) => s.status !== 'missing')) {
       const def = achievements.find((a) => a.id === `team_${sticker.teamCode.toLowerCase()}`)
-      if (def) unlock(def)
+      if (def) unlock(def, options)
     }
 
     // 4. World Ruler — every team complete.
@@ -100,14 +105,14 @@ export const useAchievementsStore = defineStore('achievements', () => {
     })
     if (allTeamsComplete) {
       const def = achievements.find((a) => a.trigger.kind === 'allTeamsCompleted')
-      if (def) unlock(def)
+      if (def) unlock(def, options)
     }
 
     // 5. Total pasted thresholds (first sticker, centurion, ...).
     const pastedCount = allStickers.filter((s) => s.status !== 'missing').length
     for (const def of achievements) {
       if (def.trigger.kind === 'totalPasted' && pastedCount >= def.trigger.count) {
-        unlock(def)
+        unlock(def, options)
       }
     }
 
@@ -115,7 +120,7 @@ export const useAchievementsStore = defineStore('achievements', () => {
     const ratio = allStickers.length > 0 ? pastedCount / allStickers.length : 0
     for (const def of achievements) {
       if (def.category === 'milestone' && def.trigger.kind === 'albumPercent' && ratio >= def.trigger.threshold) {
-        unlock(def)
+        unlock(def, options)
       }
     }
   }

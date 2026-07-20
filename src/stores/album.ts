@@ -3,6 +3,7 @@ import { computed, ref, toRaw } from 'vue'
 import { db } from '@/db/database'
 import type { Sticker, Team } from '@/types/models'
 import { useAchievementsStore } from '@/stores/achievements'
+import { superstarStickerIDs } from '@/data/achievements'
 import { useExchangesStore } from '@/stores/exchanges'
 import { useHaptics } from '@/composables/useHaptics'
 
@@ -173,6 +174,45 @@ export const useAlbumStore = defineStore('album', () => {
     useAchievementsStore().checkAfterPaste(sticker)
   }
 
+  /**
+   * For collectors who already own every sticker but are just starting to use
+   * the app: marks every not-yet-owned sticker as pasted in one shot, so they
+   * don't have to tap through hundreds of stickers by hand. Once nothing is
+   * "missing" anymore, the normal increment logic (see StickerCell/exchanges)
+   * naturally routes every further addition into duplicates, since it only
+   * pastes into the album when a sticker's current status is "missing".
+   * Returns how many stickers were updated.
+   */
+  async function markAllCollected(): Promise<number> {
+    const missing = Array.from(stickers.value.values()).filter((s) => s.status === 'missing')
+    if (missing.length === 0) return 0
+    for (const sticker of missing) {
+      sticker.status = 'pasted'
+      sticker.duplicateCount = 0
+    }
+    await db.stickers.bulkPut(missing.map((s) => toRaw(s)))
+
+    // checkAfterPaste() re-scans the whole album for the global checks (World
+    // Ruler, Star Hunter, milestones), so one representative sticker per
+    // affected team is enough to catch those plus that team's completion —
+    // no need to run the full scan once per sticker. The per-sticker superstar
+    // easter eggs need their own pass since they match on the exact id.
+    // Achievements still unlock (and remain visible in the Achievements tab)
+    // but are marked `silent` so this one bulk action doesn't queue up a
+    // banner for every single one.
+    const achievements = useAchievementsStore()
+    const seenTeams = new Set<string>()
+    for (const sticker of missing) {
+      if (seenTeams.has(sticker.teamCode)) continue
+      seenTeams.add(sticker.teamCode)
+      achievements.checkAfterPaste(sticker, { silent: true })
+    }
+    for (const sticker of missing) {
+      if (superstarStickerIDs.includes(sticker.id)) achievements.checkAfterPaste(sticker, { silent: true })
+    }
+    return missing.length
+  }
+
   async function removeDuplicate(stickerId: string) {
     const sticker = stickers.value.get(stickerId)
     if (!sticker) return
@@ -215,6 +255,7 @@ export const useAlbumStore = defineStore('album', () => {
     remove,
     addDuplicate,
     removeDuplicate,
+    markAllCollected,
     reservedCount,
     incomingCount,
   }

@@ -188,6 +188,12 @@ export default {
     importBackup: 'Import backup',
     importSuccess: 'Backup restored successfully.',
     importError: 'That file could not be read as a backup.',
+    collectionComplete: 'Already collected everything?',
+    collectionCompleteDescription:
+      "If you already own every sticker and are just starting to use the app, this marks all of them as obtained and pasted in one tap — so you don't have to enter every player by hand. Any stickers you add afterwards will be logged as duplicates for trading.",
+    collectionCompleteButton: 'Mark collection as complete',
+    collectionCompleteConfirm: 'This will mark every remaining sticker as pasted into the album. Continue?',
+    collectionCompleteSuccess: 'Marked {count} stickers as pasted.',
   },
   more: {
     community: 'Telegram Community',

@@ -4,11 +4,13 @@ import { useI18n } from 'vue-i18n'
 import { Copy } from '@lucide/vue'
 import { useAlbumStore } from '@/stores/album'
 import { useExchangesStore } from '@/stores/exchanges'
+import { useFinanceStore } from '@/stores/finance'
 import { useSettingsStore } from '@/stores/settings'
 
 const { t } = useI18n()
 const album = useAlbumStore()
 const exchangesStore = useExchangesStore()
+const finance = useFinanceStore()
 const settings = useSettingsStore()
 const copied = ref(false)
 
@@ -37,7 +39,7 @@ const lookingForText = computed(() =>
 )
 
 const duplicatesText = computed(() =>
-  buildBlock((s) => s.duplicateCount > exchangesStore.reservedCount(s.id)),
+  buildBlock((s) => s.duplicateCount > exchangesStore.reservedCount(s.id) + finance.reservedForSaleCount(s.id)),
 )
 
 /** Fixed message template — see TradeMessageView spec: no user prefix/suffix, just the location line. */

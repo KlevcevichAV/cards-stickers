@@ -18,7 +18,7 @@ const superstarAchievements: AchievementDefinition[] = [
   {
     id: 'star_messi',
     titleEN: 'El Capitán',
-    titleRU: 'Эль КапитаОн',
+    titleRU: 'Эль Капитан',
     descEN: 'Lionel Messi — Argentina #17',
     descRU: 'Лионель Месси — Аргентина №17',
     icon: 'star',

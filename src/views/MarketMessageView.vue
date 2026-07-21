@@ -4,6 +4,7 @@ import { useI18n } from 'vue-i18n'
 import { Copy } from '@lucide/vue'
 import { useAlbumStore } from '@/stores/album'
 import { useExchangesStore } from '@/stores/exchanges'
+import { useFinanceStore } from '@/stores/finance'
 import { useSettingsStore } from '@/stores/settings'
 
 const props = defineProps<{ mode: 'buy' | 'sell' }>()
@@ -11,6 +12,7 @@ const props = defineProps<{ mode: 'buy' | 'sell' }>()
 const { t } = useI18n()
 const album = useAlbumStore()
 const exchangesStore = useExchangesStore()
+const finance = useFinanceStore()
 const settings = useSettingsStore()
 const copied = ref(false)
 
@@ -34,11 +36,11 @@ function buildBlock(predicate: (sticker: { status: string; duplicateCount: numbe
   return lines.join('\n')
 }
 
-/** "Buy" lists what's missing (and not already promised via an active incoming trade); "sell" lists spare duplicates not already reserved for a trade. */
+/** "Buy" lists what's missing (and not already promised via an active incoming trade); "sell" lists spare duplicates not already reserved for a trade or an active sale. */
 const whatText = computed(() =>
   props.mode === 'buy'
     ? buildBlock((s) => s.status === 'missing' && exchangesStore.incomingCount(s.id) === 0)
-    : buildBlock((s) => s.duplicateCount > exchangesStore.reservedCount(s.id)),
+    : buildBlock((s) => s.duplicateCount > exchangesStore.reservedCount(s.id) + finance.reservedForSaleCount(s.id)),
 )
 
 const messageText = computed(() => {

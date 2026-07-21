@@ -28,7 +28,7 @@ describe('finance store', () => {
     expect(finance.costPerSticker).toBeCloseTo(finance.totalSpent / 35)
   })
 
-  it('computes balance from sales minus purchases, and consumes the sold duplicate', async () => {
+  it('computes balance from sales minus purchases, and consumes the sold duplicate once completed', async () => {
     const album = useAlbumStore()
     const finance = useFinanceStore()
     await finance.addPurchase('pack', 2, 5, new Date().toISOString())
@@ -37,13 +37,50 @@ describe('finance store', () => {
     await album.addDuplicate('ARG17')
     expect(album.stickers.get('ARG17')?.duplicateCount).toBe(1)
 
-    await finance.addSale([{ teamCode: 'ARG', number: 17, count: 1 }], 3, new Date().toISOString(), 'sold a dupe')
+    const sale = await finance.addSale(
+      [{ teamCode: 'ARG', number: 17, count: 1 }],
+      3,
+      new Date().toISOString(),
+      'sold a dupe',
+    )
+
+    // Newly created — reserved but not yet applied: duplicate untouched, nothing earned yet.
+    expect(sale.status).toBe('active')
+    expect(finance.reservedForSaleCount('ARG17')).toBe(1)
+    expect(finance.totalEarned).toBe(0)
+    expect(album.stickers.get('ARG17')?.duplicateCount).toBe(1)
+
+    await finance.completeSale(sale.id)
 
     expect(finance.totalEarned).toBe(3)
     expect(finance.balance).toBeCloseTo(3 - 10)
     expect(finance.totalStickersSold).toBe(1)
+    expect(finance.reservedForSaleCount('ARG17')).toBe(0)
     expect(album.stickers.get('ARG17')?.duplicateCount).toBe(0)
     expect(album.stickers.get('ARG17')?.status).toBe('pasted')
+  })
+
+  it('cancelling an active sale releases the reservation without touching duplicates or earnings', async () => {
+    const album = useAlbumStore()
+    const finance = useFinanceStore()
+
+    await album.paste('ARG17')
+    await album.addDuplicate('ARG17')
+
+    const sale = await finance.addSale([{ teamCode: 'ARG', number: 17, count: 1 }], 3, new Date().toISOString(), '')
+    expect(finance.reservedForSaleCount('ARG17')).toBe(1)
+
+    await finance.cancelSale(sale.id)
+
+    expect(sale.status).toBe('cancelled')
+    expect(finance.reservedForSaleCount('ARG17')).toBe(0)
+    expect(finance.totalEarned).toBe(0)
+    expect(album.stickers.get('ARG17')?.duplicateCount).toBe(1)
+
+    // Cancelling (or completing) an already-inactive sale is a no-op.
+    await finance.completeSale(sale.id)
+    expect(album.stickers.get('ARG17')?.duplicateCount).toBe(1)
+    expect(finance.totalEarned).toBe(0)
   })
 
   it('folds sold stickers into the expected total, so selling owned stock stays balanced', async () => {
@@ -60,14 +97,16 @@ describe('finance store', () => {
     expect(finance.expectedStickerTotal).toBe(7)
     expect(finance.stickerCountDiff).toBe(0)
 
-    // Sell that spare duplicate — expected and actual should drop together, no phantom drift.
+    // Sell that spare duplicate — expected and actual should drop together, no phantom drift,
+    // once the sale is completed (an active sale is just a reservation, not a done deal yet).
     const sticker = album.stickers.get(ids[0])!
-    await finance.addSale(
+    const sale = await finance.addSale(
       [{ teamCode: sticker.teamCode, number: sticker.number, count: 1 }],
       2,
       new Date().toISOString(),
       '',
     )
+    await finance.completeSale(sale.id)
 
     expect(finance.actualStickerTotal).toBe(6)
     expect(finance.expectedStickerTotal).toBe(6)
@@ -121,5 +160,22 @@ describe('finance store', () => {
     expect(finance.expectedStickerTotal).toBe(7)
     expect(finance.actualStickerTotal).toBe(8)
     expect(finance.stickerCountDiff).toBe(1)
+  })
+
+  it('treats sales saved before the status field existed as already completed', async () => {
+    // Simulate a pre-migration record written straight to Dexie, bypassing addSale.
+    await db.sales.add({
+      id: 'legacy-sale',
+      stickers: [{ teamCode: 'ARG', number: 17, count: 1 }],
+      price: 5,
+      date: new Date().toISOString(),
+      comment: '',
+    } as never)
+
+    const finance = useFinanceStore()
+    await finance.load(true)
+
+    expect(finance.sales.find((s) => s.id === 'legacy-sale')?.status).toBe('completed')
+    expect(finance.totalEarned).toBe(5)
   })
 })

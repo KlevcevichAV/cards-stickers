@@ -46,7 +46,9 @@ describe('Exchange flow via the UI', () => {
     await numberButtons[0].trigger('click')
     await wrapper.vm.$nextTick()
 
-    const partnerInput = wrapper.find('input[type="text"]')
+    // Scoped to .partner-row: the giving-mode picker's own team-search text input
+    // (see ExchangeStickerPicker) now also matches a bare `input[type="text"]` selector.
+    const partnerInput = wrapper.find('.partner-row input[type="text"]')
     await partnerInput.setValue('sam')
 
     await wrapper.find('form').trigger('submit')

@@ -4,12 +4,14 @@ import { useI18n } from 'vue-i18n'
 import { ArrowDownAZ, ListOrdered, Minus } from '@lucide/vue'
 import { useAlbumStore } from '@/stores/album'
 import { useExchangesStore } from '@/stores/exchanges'
+import { useFinanceStore } from '@/stores/finance'
 import type { Sticker, Team } from '@/types/models'
 
 type SortMode = 'album' | 'alpha'
 
 const album = useAlbumStore()
 const exchanges = useExchangesStore()
+const finance = useFinanceStore()
 const { locale, t } = useI18n()
 
 const sort = ref<SortMode>('album')
@@ -87,6 +89,9 @@ const totalDuplicateStickers = computed(() => teamGroups.value.reduce((sum, g) =
           <span class="badge">×{{ sticker.duplicateCount }}</span>
           <span v-if="exchanges.reservedCount(sticker.id) > 0" class="reserved-label">
             {{ $t('duplicates.inExchange', { count: exchanges.reservedCount(sticker.id) }) }}
+          </span>
+          <span v-if="finance.reservedForSaleCount(sticker.id) > 0" class="reserved-label for-sale">
+            {{ $t('duplicates.forSale', { count: finance.reservedForSaleCount(sticker.id) }) }}
           </span>
           <button class="minus-btn" @click="album.removeDuplicate(sticker.id)">
             <Minus :size="14" />
@@ -212,6 +217,10 @@ h1 {
 .reserved-label {
   font-size: 10px;
   color: var(--color-warning);
+}
+
+.reserved-label.for-sale {
+  color: var(--color-accent);
 }
 
 .minus-btn {

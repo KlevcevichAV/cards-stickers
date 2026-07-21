@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
-import { Plus, Trash2 } from '@lucide/vue'
+import { Plus, Trash2, Pencil, Check, X as XIcon, ChevronDown } from '@lucide/vue'
 import { useFinanceStore } from '@/stores/finance'
 import { purchaseKindsByKind } from '@/data/purchaseKinds'
 import { purchaseKindIcons } from '@/config/purchaseKindIcons'
@@ -34,7 +34,14 @@ function formatDate(iso: string) {
 }
 
 const sortedPurchases = computed(() => [...finance.purchases].sort((a, b) => b.date.localeCompare(a.date)))
-const sortedSales = computed(() => [...finance.sales].sort((a, b) => b.date.localeCompare(a.date)))
+
+const salesHistoryOpen = ref(false)
+const activeSales = computed(() =>
+  finance.sales.filter((s) => s.status === 'active').sort((a, b) => b.date.localeCompare(a.date)),
+)
+const historySales = computed(() =>
+  finance.sales.filter((s) => s.status !== 'active').sort((a, b) => b.date.localeCompare(a.date)),
+)
 
 const diffColor = computed(() => {
   if (finance.stickerCountDiff === 0) return 'neutral'
@@ -87,24 +94,72 @@ const diffColor = computed(() => {
             <span class="row-title">{{ kindName(p.kind) }} ×{{ p.quantity }}</span>
             <span class="row-sub">{{ formatDate(p.date) }} · {{ format(p.price * p.quantity) }}</span>
           </div>
-          <button class="delete-btn" @click="finance.removePurchase(p.id)"><Trash2 :size="14" /></button>
+          <div class="row-actions">
+            <button
+              class="action-btn"
+              :aria-label="t('finance.edit')"
+              @click="router.push(`/finance/purchase/${p.id}/edit`)"
+            >
+              <Pencil :size="14" />
+            </button>
+            <button class="delete-btn" :aria-label="t('common.cancel')" @click="finance.removePurchase(p.id)">
+              <Trash2 :size="14" />
+            </button>
+          </div>
         </li>
       </ul>
     </section>
 
     <section>
       <h2>{{ t('finance.sales') }}</h2>
-      <p v-if="sortedSales.length === 0" class="empty">{{ t('finance.noSales') }}</p>
-      <ul class="list">
-        <li v-for="s in sortedSales" :key="s.id" class="list-row">
+      <p v-if="finance.sales.length === 0" class="empty">{{ t('finance.noSales') }}</p>
+
+      <p v-else-if="activeSales.length === 0" class="empty">{{ t('finance.noActiveSales') }}</p>
+      <ul v-else class="list">
+        <li v-for="s in activeSales" :key="s.id" class="list-row sale-row">
           <div class="row-main">
             <span class="row-title">{{ format(s.price) }}</span>
             <span v-if="s.stickers.length > 0" class="row-sub">{{ soldStickersLabel(s.stickers) }}</span>
             <span class="row-sub">{{ formatDate(s.date) }}<template v-if="s.comment"> · {{ s.comment }}</template></span>
           </div>
-          <button class="delete-btn" @click="finance.removeSale(s.id)"><Trash2 :size="14" /></button>
+          <div class="row-actions">
+            <button class="action-btn success" :aria-label="t('finance.complete')" @click="finance.completeSale(s.id)">
+              <Check :size="14" />
+            </button>
+            <button class="action-btn danger" :aria-label="t('finance.cancel')" @click="finance.cancelSale(s.id)">
+              <XIcon :size="14" />
+            </button>
+            <button class="action-btn" :aria-label="t('finance.edit')" @click="router.push(`/finance/sale/${s.id}/edit`)">
+              <Pencil :size="14" />
+            </button>
+            <button class="delete-btn" :aria-label="t('common.cancel')" @click="finance.removeSale(s.id)">
+              <Trash2 :size="14" />
+            </button>
+          </div>
         </li>
       </ul>
+
+      <template v-if="historySales.length > 0">
+        <button class="history-toggle" @click="salesHistoryOpen = !salesHistoryOpen">
+          {{ t('finance.history') }}
+          <ChevronDown :size="16" :class="{ open: salesHistoryOpen }" />
+        </button>
+        <ul v-if="salesHistoryOpen" class="list">
+          <li v-for="s in historySales" :key="s.id" class="list-row">
+            <div class="row-main">
+              <span class="row-title">
+                {{ format(s.price) }}
+                <span class="status-pill" :class="s.status">{{ t(`finance.status.${s.status}`) }}</span>
+              </span>
+              <span v-if="s.stickers.length > 0" class="row-sub">{{ soldStickersLabel(s.stickers) }}</span>
+              <span class="row-sub">{{ formatDate(s.date) }}<template v-if="s.comment"> · {{ s.comment }}</template></span>
+            </div>
+            <button class="delete-btn" :aria-label="t('common.cancel')" @click="finance.removeSale(s.id)">
+              <Trash2 :size="14" />
+            </button>
+          </li>
+        </ul>
+      </template>
     </section>
   </div>
 </template>
@@ -234,5 +289,68 @@ h2 {
 
 .delete-btn {
   color: var(--color-danger);
+}
+
+.row-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-shrink: 0;
+}
+
+.action-btn {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-bg-sunken);
+}
+
+.action-btn.success {
+  background: color-mix(in srgb, var(--color-success) 18%, transparent);
+  color: var(--color-success);
+}
+
+.action-btn.danger {
+  background: color-mix(in srgb, var(--color-danger) 18%, transparent);
+  color: var(--color-danger);
+}
+
+.status-pill {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: var(--radius-pill);
+  background: var(--color-bg-sunken);
+  margin-left: 6px;
+}
+
+.status-pill.completed {
+  color: var(--color-success);
+}
+
+.status-pill.cancelled {
+  color: var(--color-danger);
+}
+
+.history-toggle {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  padding: var(--space-2) 0;
+  margin-bottom: var(--space-2);
+}
+
+.history-toggle svg {
+  transition: transform 0.2s ease;
+}
+
+.history-toggle svg.open {
+  transform: rotate(180deg);
 }
 </style>

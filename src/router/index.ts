@@ -74,9 +74,21 @@ export const router = createRouter({
       component: () => import('@/views/finance/AddPurchaseView.vue'),
     },
     {
+      path: '/finance/purchase/:id/edit',
+      name: 'finance-purchase-edit',
+      component: () => import('@/views/finance/EditPurchaseView.vue'),
+      props: true,
+    },
+    {
       path: '/finance/add-sale',
       name: 'finance-add-sale',
       component: () => import('@/views/finance/AddSaleView.vue'),
+    },
+    {
+      path: '/finance/sale/:id/edit',
+      name: 'finance-sale-edit',
+      component: () => import('@/views/finance/EditSaleView.vue'),
+      props: true,
     },
     { path: '/settings', name: 'settings', component: () => import('@/views/SettingsView.vue') },
     { path: '/:pathMatch(.*)*', redirect: '/album' },

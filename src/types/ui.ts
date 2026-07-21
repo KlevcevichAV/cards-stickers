@@ -1,4 +1,4 @@
-import type { CancellationReason, StickerEntry } from '@/types/models'
+import type { CancellationReason, PurchaseKind, StickerEntry } from '@/types/models'
 
 export interface SheetAction {
   label: string
@@ -14,4 +14,18 @@ export interface ExchangeFormPayload {
   archived: boolean
   archiveCancelled: boolean
   archiveCancellationReason?: CancellationReason
+}
+
+export interface PurchaseFormPayload {
+  kind: PurchaseKind
+  quantity: number
+  price: number
+  date: string
+}
+
+export interface SaleFormPayload {
+  stickers: StickerEntry[]
+  price: number
+  date: string
+  comment: string
 }

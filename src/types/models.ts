@@ -54,12 +54,15 @@ export interface Purchase {
   stickerCount: number
 }
 
+export type SaleStatus = 'active' | 'completed' | 'cancelled'
+
 export interface Sale {
   id: string
   stickers: StickerEntry[]
   price: number
   date: string
   comment: string
+  status: SaleStatus
 }
 
 export interface AchievementRecord {

@@ -5,6 +5,7 @@ import { useRouter } from 'vue-router'
 import { Trash2 } from '@lucide/vue'
 import { useAlbumStore } from '@/stores/album'
 import { useExchangesStore } from '@/stores/exchanges'
+import { useFinanceStore } from '@/stores/finance'
 import { useSavedAnalysesStore } from '@/stores/savedAnalyses'
 import { useExchangePrefillStore } from '@/stores/exchangePrefill'
 import { parseTradeMessage } from '@/services/tradeMessageParser'
@@ -18,6 +19,7 @@ const { t } = useI18n()
 const router = useRouter()
 const album = useAlbumStore()
 const exchangesStore = useExchangesStore()
+const finance = useFinanceStore()
 const savedAnalyses = useSavedAnalysesStore()
 const prefillStore = useExchangePrefillStore()
 
@@ -40,7 +42,12 @@ const conflictFreeTheyHaveWeNeed = computed(() =>
   result.value ? withoutConflicts(result.value.theyHaveWeNeed, (id) => exchangesStore.incomingCount(id)) : [],
 )
 const conflictFreeWeHaveTheyNeed = computed(() =>
-  result.value ? withoutConflicts(result.value.weHaveTheyNeed, (id) => exchangesStore.reservedCount(id)) : [],
+  result.value
+    ? withoutConflicts(
+        result.value.weHaveTheyNeed,
+        (id) => exchangesStore.reservedCount(id) + finance.reservedForSaleCount(id),
+      )
+    : [],
 )
 const hasConflicts = computed(
   () =>

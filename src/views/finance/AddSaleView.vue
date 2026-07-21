@@ -1,115 +1,35 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import { useFinanceStore } from '@/stores/finance'
-import ExchangeStickerPicker from '@/components/ExchangeStickerPicker.vue'
-import type { StickerEntry } from '@/types/models'
+import SaleForm from '@/components/SaleForm.vue'
+import type { SaleFormPayload } from '@/types/ui'
 
 const { t } = useI18n()
 const router = useRouter()
 const finance = useFinanceStore()
 
-const stickers = ref<StickerEntry[]>([])
-const price = ref(0)
-const date = ref(new Date().toISOString().slice(0, 10))
-const comment = ref('')
-
-const canSubmit = computed(() => stickers.value.length > 0)
-
-async function submit() {
-  await finance.addSale(stickers.value, price.value, new Date(date.value).toISOString(), comment.value)
+async function onSubmit(payload: SaleFormPayload) {
+  await finance.addSale(payload.stickers, payload.price, payload.date, payload.comment)
   router.push('/finance')
 }
 </script>
 
 <template>
-  <form class="add-sale" @submit.prevent="submit">
+  <div class="add-sale">
     <h1>{{ t('finance.addSale') }}</h1>
-
-    <div class="field">
-      <label>{{ t('finance.soldStickers') }}</label>
-      <ExchangeStickerPicker v-model="stickers" mode="giving" />
-    </div>
-
-    <div class="field">
-      <label>{{ t('finance.pricePerUnit') }}</label>
-      <input v-model.number="price" type="number" min="0" step="0.01" />
-    </div>
-
-    <div class="field">
-      <label>{{ t('finance.date') }}</label>
-      <input v-model="date" type="date" />
-    </div>
-
-    <div class="field">
-      <label>{{ t('finance.comment') }}</label>
-      <input v-model="comment" type="text" />
-    </div>
-
-    <div class="actions">
-      <button type="button" class="btn secondary" @click="router.push('/finance')">{{ t('common.cancel') }}</button>
-      <button type="submit" class="btn primary" :disabled="!canSubmit">{{ t('common.save') }}</button>
-    </div>
-  </form>
+    <SaleForm @submit="onSubmit" @cancel="router.push('/finance')" />
+  </div>
 </template>
 
 <style scoped>
 .add-sale {
   padding: var(--space-4);
   padding-bottom: calc(var(--space-4) + var(--safe-bottom));
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-3);
 }
 
 h1 {
   font-size: 22px;
-  margin: 0 0 var(--space-2);
-}
-
-.field {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
-}
-
-label {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--color-text-secondary);
-}
-
-input {
-  padding: var(--space-2) var(--space-3);
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--color-border);
-  background: var(--color-bg-sunken);
-}
-
-.actions {
-  display: flex;
-  gap: var(--space-3);
-  margin-top: var(--space-2);
-}
-
-.btn {
-  flex: 1;
-  padding: var(--space-3);
-  border-radius: var(--radius-md);
-  font-weight: 600;
-}
-
-.btn.primary {
-  background: var(--color-accent);
-  color: var(--color-accent-contrast);
-}
-
-.btn.primary:disabled {
-  opacity: 0.4;
-}
-
-.btn.secondary {
-  background: var(--color-bg-sunken);
+  margin: 0 0 var(--space-4);
 }
 </style>

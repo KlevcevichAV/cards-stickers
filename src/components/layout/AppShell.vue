@@ -7,9 +7,15 @@ import AchievementBanner from '@/components/AchievementBanner.vue'
 import { useAlbumStore } from '@/stores/album'
 import { useAchievementsStore } from '@/stores/achievements'
 import { useExchangesStore } from '@/stores/exchanges'
+import { useFinanceStore } from '@/stores/finance'
 
 onMounted(async () => {
-  await Promise.all([useAlbumStore().load(), useAchievementsStore().load(), useExchangesStore().load()])
+  await Promise.all([
+    useAlbumStore().load(),
+    useAchievementsStore().load(),
+    useExchangesStore().load(),
+    useFinanceStore().load(),
+  ])
 })
 </script>
 

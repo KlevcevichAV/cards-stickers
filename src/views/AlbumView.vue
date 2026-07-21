@@ -239,6 +239,11 @@ function selectTeam(code: string) {
   height: 100%;
   min-height: calc(100dvh - 56px);
   background: var(--color-bg-sunken);
+  /* .content (an ancestor) reserves the safe-top inset as top padding, which is
+     fine for normally-scrolling views but would double up with page-header's own
+     safe-top padding below — pull it back so the two cancel out and the initial,
+     unscrolled layout is unchanged. */
+  margin-top: calc(-1 * var(--safe-top));
 }
 
 .page-header {
@@ -246,8 +251,16 @@ function selectTeam(code: string) {
   align-items: center;
   justify-content: space-between;
   padding: var(--space-4);
+  padding-top: calc(var(--space-4) + var(--safe-top));
   background: var(--color-bg-elevated);
   border-bottom: 1px solid var(--color-border);
+  /* Same problem as .nav-bar (see its comment): the document scrolls rather than
+     .album clipping internally, so on a full team page the header would otherwise
+     scroll away with the grid — leaving no indication of which team you're
+     looking at. Stick it to the top so it's always visible while paging/scrolling. */
+  position: sticky;
+  top: 0;
+  z-index: var(--z-shell);
 }
 
 .team-info {

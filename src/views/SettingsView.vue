@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { Download, Upload, Smartphone, PartyPopper } from '@lucide/vue'
+import { Download, Upload, Smartphone, PartyPopper, ClipboardPaste, Link2 } from '@lucide/vue'
 import { useSettingsStore } from '@/stores/settings'
 import { useAlbumStore } from '@/stores/album'
 import { useAchievementsStore } from '@/stores/achievements'
@@ -9,6 +9,8 @@ import { useExchangesStore } from '@/stores/exchanges'
 import { useFinanceStore } from '@/stores/finance'
 import { usePwaInstall } from '@/composables/usePwaInstall'
 import { exportBackup, downloadBackup, parseBackup, importBackup } from '@/services/backupService'
+import { parseTradeMessage } from '@/services/tradeMessageParser'
+import { fetchLastStickerCollection } from '@/services/lastStickerImport'
 
 const { t } = useI18n()
 const settings = useSettingsStore()
@@ -26,6 +28,58 @@ async function handleMarkCollectionComplete() {
   collectedCount.value = await album.markAllCollected()
   collectionStatus.value = 'success'
   setTimeout(() => (collectionStatus.value = 'idle'), 4000)
+}
+
+const importCollectionText = ref('')
+const importCollectionStatus = ref<'idle' | 'success'>('idle')
+const importCollectionResult = ref({ missing: 0, duplicates: 0, pasted: 0 })
+
+const parsedImportCollection = computed(() => parseTradeMessage(importCollectionText.value))
+const canApplyImportCollection = computed(
+  () => parsedImportCollection.value.need.length + parsedImportCollection.value.have.length > 0,
+)
+
+// Its own independent flow: fetch + apply happen together in one click, with no
+// intermediate "need"/"have" text shown — that manual path (below) is a separate option.
+const lastStickerUrl = ref('')
+const lastStickerStatus = ref<'idle' | 'loading' | 'success' | 'error'>('idle')
+const lastStickerResult = ref({ missing: 0, duplicates: 0, pasted: 0 })
+
+async function handleTransferFromLastSticker() {
+  lastStickerStatus.value = 'loading'
+  let entries: Awaited<ReturnType<typeof fetchLastStickerCollection>>
+  try {
+    entries = await fetchLastStickerCollection(lastStickerUrl.value)
+  } catch {
+    // Whatever went wrong — bad link, no matching collection, the reader proxy being
+    // unreachable — the manual list paste below still works as a fallback.
+    lastStickerStatus.value = 'error'
+    return
+  }
+
+  const confirmed = window.confirm(
+    t('settings.lastStickerConfirm', { need: entries.need.length, have: entries.have.length }),
+  )
+  if (!confirmed) {
+    lastStickerStatus.value = 'idle'
+    return
+  }
+
+  lastStickerResult.value = await album.setCollectionFromLists(entries.need, entries.have)
+  lastStickerStatus.value = 'success'
+  setTimeout(() => (lastStickerStatus.value = 'idle'), 5000)
+}
+
+async function handleImportCollection() {
+  const parsed = parsedImportCollection.value
+  const confirmed = window.confirm(
+    t('settings.importCollectionConfirm', { need: parsed.need.length, have: parsed.have.length }),
+  )
+  if (!confirmed) return
+  importCollectionResult.value = await album.setCollectionFromLists(parsed.need, parsed.have)
+  importCollectionStatus.value = 'success'
+  importCollectionText.value = ''
+  setTimeout(() => (importCollectionStatus.value = 'idle'), 5000)
 }
 
 async function handleExport() {
@@ -111,6 +165,68 @@ async function handleImportFile(event: Event) {
         {{ t('settings.collectionCompleteSuccess', { count: collectedCount }) }}
       </p>
     </section>
+
+    <section class="card">
+      <h2>{{ t('settings.lastStickerTitle') }}</h2>
+      <p class="description">{{ t('settings.lastStickerDescription') }}</p>
+      <div class="last-sticker-row">
+        <input
+          v-model="lastStickerUrl"
+          type="text"
+          :placeholder="t('settings.lastStickerPlaceholder')"
+          @keyup.enter="handleTransferFromLastSticker"
+        />
+      </div>
+      <button
+        class="btn warning"
+        :disabled="!lastStickerUrl.trim() || lastStickerStatus === 'loading'"
+        @click="handleTransferFromLastSticker"
+      >
+        <Link2 :size="16" />
+        {{ lastStickerStatus === 'loading' ? t('settings.lastStickerFetching') : t('settings.lastStickerButton') }}
+      </button>
+      <p v-if="lastStickerStatus === 'error'" class="status error">{{ t('settings.lastStickerError') }}</p>
+      <p v-if="lastStickerStatus === 'success'" class="status success">
+        {{
+          t('settings.importCollectionSuccess', {
+            pasted: lastStickerResult.pasted,
+            duplicates: lastStickerResult.duplicates,
+            missing: lastStickerResult.missing,
+          })
+        }}
+      </p>
+    </section>
+
+    <section class="card">
+      <h2>{{ t('settings.importCollection') }}</h2>
+      <p class="description">{{ t('settings.importCollectionDescription') }}</p>
+      <textarea
+        v-model="importCollectionText"
+        class="import-textarea"
+        rows="6"
+        :placeholder="t('settings.importCollectionPlaceholder')"
+      />
+      <p v-if="importCollectionText.trim()" class="parsed-summary">
+        {{
+          t('settings.importCollectionParsed', {
+            need: parsedImportCollection.need.length,
+            have: parsedImportCollection.have.length,
+          })
+        }}
+      </p>
+      <button class="btn warning" :disabled="!canApplyImportCollection" @click="handleImportCollection">
+        <ClipboardPaste :size="16" /> {{ t('settings.importCollectionButton') }}
+      </button>
+      <p v-if="importCollectionStatus === 'success'" class="status success">
+        {{
+          t('settings.importCollectionSuccess', {
+            pasted: importCollectionResult.pasted,
+            duplicates: importCollectionResult.duplicates,
+            missing: importCollectionResult.missing,
+          })
+        }}
+      </p>
+    </section>
   </div>
 </template>
 
@@ -152,6 +268,43 @@ input[type='text'] {
   font-size: 13px;
   color: var(--color-text-secondary);
   margin: 0 0 var(--space-3);
+}
+
+.last-sticker-row {
+  margin-bottom: var(--space-3);
+}
+
+.last-sticker-row input {
+  width: 100%;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border);
+  background: var(--color-bg-sunken);
+  /* iOS Safari auto-zooms the page on focus for any input with a computed
+     font-size under 16px — keep this at 16px to avoid that. */
+  font-size: 16px;
+}
+
+.import-textarea {
+  width: 100%;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border);
+  background: var(--color-bg-sunken);
+  font-family: inherit;
+  font-size: 13px;
+  resize: vertical;
+  margin-bottom: var(--space-2);
+}
+
+.parsed-summary {
+  font-size: 12px;
+  color: var(--color-text-secondary);
+  margin: 0 0 var(--space-3);
+}
+
+.btn:disabled {
+  opacity: 0.4;
 }
 
 .backup-actions {

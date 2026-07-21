@@ -1,11 +1,12 @@
 import { defineStore } from 'pinia'
 import { computed, ref, toRaw } from 'vue'
 import { db } from '@/db/database'
-import type { Sticker, Team } from '@/types/models'
+import type { Sticker, StickerEntry, Team } from '@/types/models'
 import { useAchievementsStore } from '@/stores/achievements'
 import { superstarStickerIDs } from '@/data/achievements'
 import { useExchangesStore } from '@/stores/exchanges'
 import { useHaptics } from '@/composables/useHaptics'
+import { stickerIdForEntry } from '@/services/stickerId'
 
 export interface GroupStat {
   letter: string
@@ -214,6 +215,77 @@ export const useAlbumStore = defineStore('album', () => {
     return missing.length
   }
 
+  /**
+   * Bulk-populates the whole album from a "need"/"have" pair parsed out of a trade message
+   * (see Settings' "populate from message" and tradeMessageParser): anything in `need` is
+   * missing, anything in `have` becomes a duplicate with that many extra copies, and
+   * everything else not mentioned is treated as already pasted — a collector who lists what
+   * they're missing (and what's spare) implicitly means "I already own everything else".
+   * This replaces the *entire* album's state, not just the mentioned stickers.
+   */
+  async function setCollectionFromLists(
+    need: StickerEntry[],
+    have: StickerEntry[],
+  ): Promise<{ missing: number; duplicates: number; pasted: number }> {
+    const needIds = new Set(need.map((e) => stickerIdForEntry(e)))
+    const haveCounts = new Map<string, number>()
+    for (const entry of have) {
+      const id = stickerIdForEntry(entry)
+      haveCounts.set(id, (haveCounts.get(id) ?? 0) + entry.count)
+    }
+
+    const changed: Sticker[] = []
+    const newlyOwned: Sticker[] = []
+    let missing = 0
+    let duplicates = 0
+    let pasted = 0
+
+    for (const sticker of stickers.value.values()) {
+      const wasMissing = sticker.status === 'missing'
+      let nextStatus: Sticker['status']
+      let nextDuplicateCount = 0
+
+      if (needIds.has(sticker.id)) {
+        nextStatus = 'missing'
+        missing++
+      } else if (haveCounts.has(sticker.id)) {
+        nextStatus = 'duplicate'
+        nextDuplicateCount = haveCounts.get(sticker.id)!
+        duplicates++
+      } else {
+        nextStatus = 'pasted'
+        pasted++
+      }
+
+      if (sticker.status !== nextStatus || sticker.duplicateCount !== nextDuplicateCount) {
+        sticker.status = nextStatus
+        sticker.duplicateCount = nextDuplicateCount
+        changed.push(sticker)
+        if (wasMissing && nextStatus !== 'missing') newlyOwned.push(sticker)
+      }
+    }
+
+    if (changed.length > 0) {
+      await db.stickers.bulkPut(changed.map((s) => toRaw(s)))
+    }
+
+    // Same silent-achievement-check approach as markAllCollected — one representative
+    // sticker per newly-completed team (plus the global checks it triggers), and a
+    // dedicated pass for the per-sticker superstar easter eggs.
+    const achievements = useAchievementsStore()
+    const seenTeams = new Set<string>()
+    for (const sticker of newlyOwned) {
+      if (seenTeams.has(sticker.teamCode)) continue
+      seenTeams.add(sticker.teamCode)
+      achievements.checkAfterPaste(sticker, { silent: true })
+    }
+    for (const sticker of newlyOwned) {
+      if (superstarStickerIDs.includes(sticker.id)) achievements.checkAfterPaste(sticker, { silent: true })
+    }
+
+    return { missing, duplicates, pasted }
+  }
+
   async function removeDuplicate(stickerId: string) {
     const sticker = stickers.value.get(stickerId)
     if (!sticker) return
@@ -257,6 +329,7 @@ export const useAlbumStore = defineStore('album', () => {
     addDuplicate,
     removeDuplicate,
     markAllCollected,
+    setCollectionFromLists,
     reservedCount,
     incomingCount,
   }

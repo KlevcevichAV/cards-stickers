@@ -216,6 +216,25 @@ export default {
     collectionCompleteButton: 'Mark collection as complete',
     collectionCompleteConfirm: 'This will mark every remaining sticker as pasted into the album. Continue?',
     collectionCompleteSuccess: 'Marked {count} stickers as pasted.',
+    lastStickerTitle: 'Transfer collection from LastSticker.ru',
+    lastStickerDescription:
+      'Paste the link to your LastSticker.ru profile to automatically fetch and apply your Panini World Cup 2026 "need"/"have" lists (via a public reader proxy, since LastSticker.ru itself blocks direct requests from other sites). This replaces the whole album\'s current state.',
+    lastStickerPlaceholder: 'https://www.laststicker.ru/users/11111/',
+    lastStickerButton: 'Transfer collection',
+    lastStickerFetching: 'Fetching…',
+    lastStickerConfirm:
+      'This will replace your entire album: {need} sticker(s) become missing, {have} become duplicates, and everything else becomes pasted. Continue?',
+    lastStickerError:
+      "Couldn't fetch that profile. Check the link, make sure it has a Panini World Cup 2026 collection, or use the manual list below instead.",
+    importCollection: 'Populate from a "need"/"have" list',
+    importCollectionDescription:
+      'Paste a trade message or a plain list — either the "#Trade" template (🔍 LOOKING FOR / 🔄 DUPLICATES) or simple comma-separated codes under "Looking for:" / "For trade:" headers. Everything listed as needed becomes missing, everything listed as spare becomes a duplicate, and anything not mentioned at all is treated as already pasted. This replaces the whole album\'s current state.',
+    importCollectionPlaceholder: 'Paste your trade message or list here…',
+    importCollectionParsed: 'Parsed: {need} needed, {have} spare.',
+    importCollectionButton: 'Apply to collection',
+    importCollectionConfirm:
+      'This will replace your entire album: {need} sticker(s) become missing, {have} become duplicates, and everything else becomes pasted. Continue?',
+    importCollectionSuccess: 'Collection updated: {pasted} pasted, {duplicates} duplicates, {missing} missing.',
   },
   more: {
     community: 'Telegram Community',

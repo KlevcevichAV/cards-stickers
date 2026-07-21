@@ -39,6 +39,8 @@ export default {
     pastedOfTotal: '{pasted} / {total}',
     prevPage: 'Previous page',
     nextPage: 'Next page',
+    searchTeam: 'Search team',
+    noResults: 'No teams found',
   },
   groups: {
     viewList: 'List',

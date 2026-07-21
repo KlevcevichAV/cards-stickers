@@ -39,6 +39,8 @@ export default {
     pastedOfTotal: '{pasted} / {total}',
     prevPage: 'Предыдущая страница',
     nextPage: 'Следующая страница',
+    searchTeam: 'Поиск команды',
+    noResults: 'Команды не найдены',
   },
   groups: {
     viewList: 'Список',

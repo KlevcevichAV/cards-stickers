@@ -21,6 +21,24 @@ function goTo(index: number) {
   currentIndex.value = index
 }
 
+// Rendering every team's page (and every one of its ~20 stickers) at once means
+// ~1000 StickerCell instances sitting in the DOM simultaneously, which is what made
+// swiping feel sluggish on phones. Only the current page and its immediate
+// neighbors (needed for the drag preview) are ever mounted; the rest are windowed
+// out and mount lazily as the user pages past them.
+const visibleIndices = computed(() => {
+  const indices: number[] = []
+  for (let i = currentIndex.value - 1; i <= currentIndex.value + 1; i++) {
+    if (i >= 0 && i < totalPages.value) indices.push(i)
+  }
+  return indices
+})
+
+const visiblePages = computed(() => visibleIndices.value.map((i) => album.pages[i]))
+
+// Where the current page sits within the (at most 3) currently-mounted slots.
+const currentSlot = computed(() => visibleIndices.value.indexOf(currentIndex.value))
+
 // Deep-link support: /album?team=ARG, used by Groups/Stats/Duplicates.
 watch(
   () => route.query.team,
@@ -64,7 +82,7 @@ function onPointerUp() {
 }
 
 const trackStyle = computed(() => {
-  const base = -currentIndex.value * 100
+  const base = -currentSlot.value * 100
   const dragPercent = containerWidth > 0 ? (trackOffset.value / containerWidth) * 100 : 0
   return {
     transform: `translateX(${base + dragPercent}%)`,
@@ -114,7 +132,7 @@ function teamName(team: { nameEN: string; nameRU: string }) {
     >
       <div class="track" :style="trackStyle">
         <div
-          v-for="page in album.pages"
+          v-for="page in visiblePages"
           :key="page.team.code"
           class="page"
           :class="{ compact: page.stickers.length !== 20 }"

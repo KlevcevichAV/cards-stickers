@@ -135,7 +135,7 @@ function teamName(team: { nameEN: string; nameRU: string }) {
           v-for="page in visiblePages"
           :key="page.team.code"
           class="page"
-          :class="{ compact: page.stickers.length !== 20 }"
+          :class="{ compact: page.stickers.length !== 20, current: page === currentPage }"
         >
           <div class="grid">
             <StickerCell v-for="sticker in page.stickers" :key="sticker.id" :sticker="sticker" />
@@ -278,6 +278,13 @@ function teamName(team: { nameEN: string; nameRU: string }) {
 
 .page.compact .grid :deep(.cell-wrap) {
   flex: 0 0 calc((100% - 3 * var(--space-2)) / 4);
+}
+
+/* The prev/next neighbor pages stay mounted (for the swipe preview) but are never
+   seen mid-animation, so their foil sheen loops are wasted GPU work every frame —
+   pause them and let only the on-screen page animate. */
+.page:not(.current) :deep(.foil-sheen) {
+  animation-play-state: paused;
 }
 
 .nav-bar {

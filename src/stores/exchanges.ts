@@ -47,18 +47,27 @@ export const useExchangesStore = defineStore('exchanges', () => {
     await db.exchanges.put(toPlainExchange(exchange))
   }
 
+  // StickerCell calls reservedCount()/incomingCount() once per sticker per render, so with
+  // hundreds of stickers on screen a per-call scan over every active exchange's entries
+  // (repeated for every sticker) got expensive. Build the lookup once per `active` change instead.
+  function countsByStickerId(pick: (e: Exchange) => StickerEntry[]) {
+    const map = new Map<string, number>()
+    for (const entry of active.value.flatMap(pick)) {
+      const id = stickerIdForEntry(entry)
+      map.set(id, (map.get(id) ?? 0) + entry.count)
+    }
+    return map
+  }
+
+  const reservedCounts = computed(() => countsByStickerId((e) => e.giving))
+  const incomingCounts = computed(() => countsByStickerId((e) => e.wanting))
+
   function reservedCount(stickerId: string): number {
-    return active.value
-      .flatMap((e) => e.giving)
-      .filter((entry) => stickerIdForEntry(entry) === stickerId)
-      .reduce((sum, entry) => sum + entry.count, 0)
+    return reservedCounts.value.get(stickerId) ?? 0
   }
 
   function incomingCount(stickerId: string): number {
-    return active.value
-      .flatMap((e) => e.wanting)
-      .filter((entry) => stickerIdForEntry(entry) === stickerId)
-      .reduce((sum, entry) => sum + entry.count, 0)
+    return incomingCounts.value.get(stickerId) ?? 0
   }
 
   /** How many currently-missing stickers will be pasted once active exchanges complete. */

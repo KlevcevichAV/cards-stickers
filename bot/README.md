@@ -1,4 +1,4 @@
-# cards-stickers-bot
+# sticards-bot
 
 Telegram-бот обратной связи: пересылает вам (и только вам) каждое сообщение,
 которое пишут боту пользователи. Работает как Cloudflare Worker — без
@@ -51,7 +51,7 @@ npx wrangler login
 npm run deploy
 ```
 
-Wrangler выведет URL вида `https://cards-stickers-bot.<ваш-субдомен>.workers.dev`.
+Wrangler выведет URL вида `https://sticards-bot.<ваш-субдомен>.workers.dev`.
 
 ## 5. Задать секреты
 
@@ -70,7 +70,7 @@ npx wrangler secret put WEBHOOK_SECRET
 
 ```sh
 curl "https://api.telegram.org/bot<BOT_TOKEN>/setWebhook" \
-  -d "url=https://cards-stickers-bot.<ваш-субдомен>.workers.dev" \
+  -d "url=https://sticards-bot.<ваш-субдомен>.workers.dev" \
   -d "secret_token=<WEBHOOK_SECRET>"
 ```
 

@@ -60,7 +60,7 @@ export function downloadBackup(backup: AlbumBackup): void {
   const a = document.createElement('a')
   const date = backup.exportedAt.slice(0, 10)
   a.href = url
-  a.download = `sticker-tracker-backup-${date}.json`
+  a.download = `sticards-backup-${date}.json`
   a.click()
   URL.revokeObjectURL(url)
 }
@@ -68,7 +68,7 @@ export function downloadBackup(backup: AlbumBackup): void {
 export function parseBackup(text: string): AlbumBackup {
   const data = JSON.parse(text) as Partial<AlbumBackup>
   if (!data || typeof data !== 'object' || !Array.isArray(data.stickers)) {
-    throw new Error('Not a valid Sticker Tracker backup file.')
+    throw new Error('Not a valid Sticards backup file.')
   }
   return {
     version: data.version ?? BACKUP_VERSION,

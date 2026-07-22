@@ -2,7 +2,7 @@ import { defineStore } from 'pinia'
 import { ref, watch } from 'vue'
 import { i18n, resolveLocale, SETTINGS_LANGUAGE_KEY, type LanguagePreference } from '@/i18n'
 
-const STORAGE_PREFIX = 'stw26.'
+export const STORAGE_PREFIX = 'stw26.'
 
 function loadString(key: string, fallback: string): string {
   return localStorage.getItem(STORAGE_PREFIX + key) ?? fallback
@@ -29,6 +29,7 @@ export const useSettingsStore = defineStore('settings', () => {
   const tradeMessageLocation = ref(loadString('tradeMessageLocation', ''))
   const marketMessagePrice = ref(loadString('marketMessagePrice', ''))
   const groupsViewMode = ref<GroupsViewMode>(loadGroupsViewMode())
+  const hasSeenOnboarding = ref(loadString('hasSeenOnboarding', 'false') === 'true')
 
   watch(
     language,
@@ -41,11 +42,13 @@ export const useSettingsStore = defineStore('settings', () => {
   persistOn('tradeMessageLocation', tradeMessageLocation)
   persistOn('marketMessagePrice', marketMessagePrice)
   persistOn('groupsViewMode', groupsViewMode)
+  persistOn('hasSeenOnboarding', hasSeenOnboarding)
 
   return {
     language,
     tradeMessageLocation,
     marketMessagePrice,
     groupsViewMode,
+    hasSeenOnboarding,
   }
 })

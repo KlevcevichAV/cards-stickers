@@ -1,16 +1,17 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { ref } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { Download, Upload, Smartphone, PartyPopper, ClipboardPaste, Link2 } from '@lucide/vue'
-import { useSettingsStore } from '@/stores/settings'
+import { Download, Upload, Smartphone, PartyPopper, ClipboardPaste, Link2, Trash2 } from '@lucide/vue'
+import { useSettingsStore, STORAGE_PREFIX } from '@/stores/settings'
 import { useAlbumStore } from '@/stores/album'
 import { useAchievementsStore } from '@/stores/achievements'
 import { useExchangesStore } from '@/stores/exchanges'
 import { useFinanceStore } from '@/stores/finance'
 import { usePwaInstall } from '@/composables/usePwaInstall'
+import { useLastStickerImport } from '@/composables/useLastStickerImport'
+import { useTradeListImport } from '@/composables/useTradeListImport'
 import { exportBackup, downloadBackup, parseBackup, importBackup } from '@/services/backupService'
-import { parseTradeMessage } from '@/services/tradeMessageParser'
-import { fetchLastStickerCollection } from '@/services/lastStickerImport'
+import { db } from '@/db/database'
 
 const { t } = useI18n()
 const settings = useSettingsStore()
@@ -30,57 +31,23 @@ async function handleMarkCollectionComplete() {
   setTimeout(() => (collectionStatus.value = 'idle'), 4000)
 }
 
-const importCollectionText = ref('')
-const importCollectionStatus = ref<'idle' | 'success'>('idle')
-const importCollectionResult = ref({ missing: 0, duplicates: 0, pasted: 0 })
-
-const parsedImportCollection = computed(() => parseTradeMessage(importCollectionText.value))
-const canApplyImportCollection = computed(
-  () => parsedImportCollection.value.need.length + parsedImportCollection.value.have.length > 0,
-)
+const {
+  text: importCollectionText,
+  status: importCollectionStatus,
+  result: importCollectionResult,
+  parsed: parsedImportCollection,
+  canApply: canApplyImportCollection,
+  submit: handleImportCollection,
+} = useTradeListImport(t)
 
 // Its own independent flow: fetch + apply happen together in one click, with no
-// intermediate "need"/"have" text shown — that manual path (below) is a separate option.
-const lastStickerUrl = ref('')
-const lastStickerStatus = ref<'idle' | 'loading' | 'success' | 'error'>('idle')
-const lastStickerResult = ref({ missing: 0, duplicates: 0, pasted: 0 })
-
-async function handleTransferFromLastSticker() {
-  lastStickerStatus.value = 'loading'
-  let entries: Awaited<ReturnType<typeof fetchLastStickerCollection>>
-  try {
-    entries = await fetchLastStickerCollection(lastStickerUrl.value)
-  } catch {
-    // Whatever went wrong — bad link, no matching collection, the reader proxy being
-    // unreachable — the manual list paste below still works as a fallback.
-    lastStickerStatus.value = 'error'
-    return
-  }
-
-  const confirmed = window.confirm(
-    t('settings.lastStickerConfirm', { need: entries.need.length, have: entries.have.length }),
-  )
-  if (!confirmed) {
-    lastStickerStatus.value = 'idle'
-    return
-  }
-
-  lastStickerResult.value = await album.setCollectionFromLists(entries.need, entries.have)
-  lastStickerStatus.value = 'success'
-  setTimeout(() => (lastStickerStatus.value = 'idle'), 5000)
-}
-
-async function handleImportCollection() {
-  const parsed = parsedImportCollection.value
-  const confirmed = window.confirm(
-    t('settings.importCollectionConfirm', { need: parsed.need.length, have: parsed.have.length }),
-  )
-  if (!confirmed) return
-  importCollectionResult.value = await album.setCollectionFromLists(parsed.need, parsed.have)
-  importCollectionStatus.value = 'success'
-  importCollectionText.value = ''
-  setTimeout(() => (importCollectionStatus.value = 'idle'), 5000)
-}
+// intermediate "need"/"have" text shown — that manual path (above) is a separate option.
+const {
+  url: lastStickerUrl,
+  status: lastStickerStatus,
+  result: lastStickerResult,
+  submit: handleTransferFromLastSticker,
+} = useLastStickerImport(t)
 
 async function handleExport() {
   const backup = await exportBackup()
@@ -115,6 +82,20 @@ async function handleImportFile(event: Event) {
     if (fileInput.value) fileInput.value.value = ''
     setTimeout(() => (importStatus.value = 'idle'), 3000)
   }
+}
+
+async function handleResetApp() {
+  if (!window.confirm(t('settings.resetConfirm'))) return
+
+  // Wipe the whole Dexie database (album, achievements, exchanges, finances) and every
+  // localStorage key this app owns (settings, language, the onboarding-seen flag), then
+  // reload — main.ts's bootstrap() re-seeds from scratch on the next boot, so this is a
+  // true "as if freshly installed" reset rather than resetting each store by hand.
+  await db.delete()
+  for (const key of Object.keys(localStorage)) {
+    if (key.startsWith(STORAGE_PREFIX)) localStorage.removeItem(key)
+  }
+  window.location.reload()
 }
 </script>
 
@@ -227,6 +208,14 @@ async function handleImportFile(event: Event) {
         }}
       </p>
     </section>
+
+    <section class="card">
+      <h2>{{ t('settings.resetTitle') }}</h2>
+      <p class="description">{{ t('settings.resetDescription') }}</p>
+      <button class="btn danger" @click="handleResetApp">
+        <Trash2 :size="16" /> {{ t('settings.resetButton') }}
+      </button>
+    </section>
   </div>
 </template>
 
@@ -335,6 +324,11 @@ input[type='text'] {
 
 .btn.warning {
   background: var(--color-warning);
+  color: #fff;
+}
+
+.btn.danger {
+  background: var(--color-danger);
   color: #fff;
 }
 

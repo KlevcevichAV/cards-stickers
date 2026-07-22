@@ -20,7 +20,7 @@ import { moreItems } from '@/config/navigation'
         </RouterLink>
       </li>
       <li>
-        <a href="https://t.me/cards_stickers" target="_blank" rel="noopener noreferrer" class="row">
+        <a href="https://t.me/StiCardsAppBot" target="_blank" rel="noopener noreferrer" class="row">
           <span class="icon">
             <Send :size="18" />
           </span>

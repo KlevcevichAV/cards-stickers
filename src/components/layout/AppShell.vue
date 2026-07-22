@@ -4,14 +4,19 @@ import { RouterView } from 'vue-router'
 import TabBar from './TabBar.vue'
 import Sidebar from './Sidebar.vue'
 import AchievementBanner from '@/components/AchievementBanner.vue'
+import OnboardingModal from '@/components/OnboardingModal.vue'
 import { useAlbumStore } from '@/stores/album'
 import { useAchievementsStore } from '@/stores/achievements'
 import { useExchangesStore } from '@/stores/exchanges'
 import { useFinanceStore } from '@/stores/finance'
+import { useSettingsStore } from '@/stores/settings'
+
+const album = useAlbumStore()
+const settings = useSettingsStore()
 
 onMounted(async () => {
   await Promise.all([
-    useAlbumStore().load(),
+    album.load(),
     useAchievementsStore().load(),
     useExchangesStore().load(),
     useFinanceStore().load(),
@@ -29,6 +34,7 @@ onMounted(async () => {
       <TabBar class="mobile-only" />
     </div>
     <AchievementBanner />
+    <OnboardingModal v-if="album.loaded && !settings.hasSeenOnboarding" />
   </div>
 </template>
 

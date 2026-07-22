@@ -22,8 +22,8 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['favicon-32.png', 'icons/apple-touch-icon.png'],
       manifest: {
-        name: 'Sticker Tracker WC26',
-        short_name: 'WC26 Stickers',
+        name: 'Sticards',
+        short_name: 'Sticards',
         description: 'Panini World Cup 2026 sticker album tracker',
         theme_color: '#101114',
         background_color: '#101114',
